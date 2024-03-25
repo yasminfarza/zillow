@@ -5,7 +5,8 @@ from contextlib import suppress
 from zillow.utils import cookie_parser, parse_new_url, get_home_id, binary_search
 import json
 
-URL = "https://www.zillow.com/search/GetSearchPageState.htm?searchQueryState=%7B%22usersSearchTerm%22%3A%22Philadelphia%2C%20PA%22%2C%22mapBounds%22%3A%7B%22west%22%3A-75.295343%2C%22east%22%3A-74.955763%2C%22south%22%3A39.848844%2C%22north%22%3A40.137992%7D%2C%22isMapVisible%22%3Afalse%2C%22filterState%22%3A%7B%22isForSaleByAgent%22%3A%7B%22value%22%3Afalse%7D%2C%22isForSaleByOwner%22%3A%7B%22value%22%3Afalse%7D%2C%22isNewConstruction%22%3A%7B%22value%22%3Afalse%7D%2C%22isForSaleForeclosure%22%3A%7B%22value%22%3Afalse%7D%2C%22isComingSoon%22%3A%7B%22value%22%3Afalse%7D%2C%22isAuction%22%3A%7B%22value%22%3Afalse%7D%2C%22isForRent%22%3A%7B%22value%22%3Atrue%7D%2C%22isAllHomes%22%3A%7B%22value%22%3Atrue%7D%2C%22isMultiFamily%22%3A%7B%22value%22%3Afalse%7D%2C%22isManufactured%22%3A%7B%22value%22%3Afalse%7D%2C%22isLotLand%22%3A%7B%22value%22%3Afalse%7D%7D%2C%22isListVisible%22%3Atrue%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A13271%7D%5D%2C%22pagination%22%3A%7B%7D%7D&wants={%22cat1%22:[%22listResults%22],%22regionResults%22:[%22regionResults%22]}&requestId=3"
+URL = "https://www.zillow.com/async-create-search-page-state"
+payload = '{"searchQueryState":{"pagination":{"currentPage":1},"isMapVisible":false,"mapBounds":{"west":-75.295343,"east":-74.955763,"south":39.848844,"north":40.137992},"usersSearchTerm":"Philadelphia, PA","regionSelection":[{"regionId":13271,"regionType":6}],"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false},"isAllHomes":{"value":true}},"isListVisible":true},"wants":{"cat1":["listResults"]},"requestId":2,"isDebugRequest":false}'
 
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
@@ -15,10 +16,12 @@ class ZillowRentSpider(scrapy.Spider):
         yield scrapy.Request(
             url=URL,
             callback=self.parse,
+            method="PUT",
+            body=payload,
             cookies=cookie_parser(),
             meta={
                 "currentPage": 1,
-                "request_id": 3,
+                "request_id": 1,
                 "home_ids": get_home_id()
             },
         )
@@ -26,6 +29,7 @@ class ZillowRentSpider(scrapy.Spider):
     def parse(self, response):
         current_page = response.meta["currentPage"]
         request_id = response.meta["request_id"]
+        
         json_resp = json.loads(response.body)
         houses = json_resp.get("cat1").get("searchResults").get("listResults")
 
@@ -50,16 +54,25 @@ class ZillowRentSpider(scrapy.Spider):
                 },
             )
 
-        if current_page <= 24:
+        if current_page <= 25:
             current_page += 1
             request_id += 1
+
+            query_string = json.loads(payload)
+            query_string["requestId"] = request_id
+            search_query_state = query_string["searchQueryState"]
+            search_query_state["pagination"] = {"currentPage": current_page}
+            query_string["searchQueryState"] = search_query_state
+
             yield scrapy.Request(
-                url=parse_new_url(URL, page_number=current_page, request_id=request_id),
+                url=URL,
                 callback=self.parse,
+                method="PUT",
+                body=json.dumps(query_string),
                 cookies=cookie_parser(),
                 meta={"currentPage": current_page, "request_id": request_id, 
-                      "home_ids": response.meta["home_ids"]
-                      },
+                    "home_ids": response.meta["home_ids"]
+                    },
             )
 
     @inline_requests
@@ -337,9 +350,11 @@ class ZillowRentSpider(scrapy.Spider):
                     agent_info = json.loads(agent_resp.body)
                     
                     agent_name, business_name = None, None
-                    with suppress(KeyError):
+                    try:
                         agent_name = agent_info["propertyInfo"]["agentInfo"]["displayName"]
                         business_name = agent_info["propertyInfo"]["agentInfo"]["businessName"]
+                    except:
+                        pass
 
                     if not agent_name and not business_name:
                         agent = "Name undisclosed"
