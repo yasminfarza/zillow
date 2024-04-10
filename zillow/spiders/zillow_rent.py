@@ -2,11 +2,11 @@ from datetime import datetime
 from inline_requests import inline_requests
 import scrapy
 from contextlib import suppress
-from zillow.utils import cookie_parser, parse_new_url, get_home_id, binary_search
+from zillow.utils import cookie_parser, parse_new_url, get_home_id, binary_search, get_zillow_url
 import json
 
 URL = "https://www.zillow.com/async-create-search-page-state"
-payload = '{"searchQueryState":{"pagination":{"currentPage":1},"isMapVisible":false,"mapBounds":{"west":-75.295343,"east":-74.955763,"south":39.848844,"north":40.137992},"usersSearchTerm":"Philadelphia, PA","regionSelection":[{"regionId":13271,"regionType":6}],"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false},"isAllHomes":{"value":true}},"isListVisible":true},"wants":{"cat1":["listResults"]},"requestId":2,"isDebugRequest":false}'
+payload = '{"searchQueryState":{"pagination":{},"isMapVisible":true,"mapBounds":{"west":-75.5155676484375,"east":-74.7355383515625,"south":39.72000542341564,"north":40.26604522692997},"usersSearchTerm":"Philadelphia, PA","regionSelection":[{"regionId":13271,"regionType":6}],"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false},"isAllHomes":{"value":true}},"isListVisible":true},"wants":{"cat1":["mapResults"]},"requestId":2,"isDebugRequest":false}'
 
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
@@ -21,8 +21,9 @@ class ZillowRentSpider(scrapy.Spider):
             cookies=cookie_parser(),
             meta={
                 "currentPage": 1,
-                "request_id": 1,
-                "home_ids": get_home_id()
+                "request_id": 2,
+                "home_ids": get_home_id(),
+                "zillow_urls": get_zillow_url(),
             },
         )
 
@@ -31,7 +32,10 @@ class ZillowRentSpider(scrapy.Spider):
         request_id = response.meta["request_id"]
         
         json_resp = json.loads(response.body)
+
         houses = json_resp.get("cat1").get("searchResults").get("listResults")
+        if not houses:
+            houses = json_resp.get("cat1").get("searchResults").get("mapResults")
 
         for i, house in enumerate(houses):
             # if i > 2:
@@ -41,6 +45,10 @@ class ZillowRentSpider(scrapy.Spider):
                 detail_link = detail_url
             else:
                 detail_link = f"https://www.zillow.com{detail_url}"
+
+            # if binary_search(response.meta["zillow_urls"], detail_link):
+            #     print("Exist in File  ")
+            #     break
             
             yield scrapy.Request(
                 url=detail_link,
@@ -51,6 +59,7 @@ class ZillowRentSpider(scrapy.Spider):
                     "current_page": current_page,
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
+                    "zillow_urls": response.meta["zillow_urls"],
                 },
             )
 
@@ -71,7 +80,8 @@ class ZillowRentSpider(scrapy.Spider):
                 body=json.dumps(query_string),
                 cookies=cookie_parser(),
                 meta={"currentPage": current_page, "request_id": request_id, 
-                    "home_ids": response.meta["home_ids"]
+                    "home_ids": response.meta["home_ids"],
+                    "zillow_urls": response.meta["zillow_urls"],
                     },
             )
 

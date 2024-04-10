@@ -4,6 +4,5 @@ dataset
 *.csv
 */__pycache__
 */*/__pycache__
-!Rent_1_Dec_23.csv
 env
 venv
