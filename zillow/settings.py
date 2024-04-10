@@ -106,7 +106,7 @@ DEFAULT_REQUEST_HEADERS = {
     "Sec-Fetch-Site": "same-origin",
     "accept-language": "en-US,en;q=0.9",
     "Content-Type": "application/json",
-    "Accep": "*/*",
+    "Accept": "*/*",
     "Accept-Encoding": "gzip, deflate, br, zstd",
     "Origin": "https://www.zillow.com",
     "Referer": "https://www.zillow.com/homes/Philadelphia,-PA_rb/"
