@@ -5,7 +5,7 @@ import json
 
 
 def cookie_parser():
-    cookie_string = 'zguid=24|%24a7e27322-3a0e-4326-b418-e8aa4c07519e; _ga=GA1.2.1940155959.1710689132; _pxvid=98d9e8c1-e472-11ee-bc8b-b5ba793165aa; zjs_anonymous_id=%22a7e27322-3a0e-4326-b418-e8aa4c07519e%22; zjs_user_id=null; zg_anonymous_id=%226bfd33f3-c430-4d46-8d40-7a9ff04ed61f%22; _gcl_au=1.1.1649066619.1710689135; __pdst=afe2ba49c9444fbea6ef80ced25c9d69; _fbp=fb.1.1710689136507.609940117; _pin_unauth=dWlkPU5URmpOMlJqWlRRdE9UVTNPQzAwWW1NeExUazJZemd0TnpNM1pXRXlZbVE1TW1RNA; FSsampler=419012691; _scid=cdd5fff7-8a08-4f62-acb8-beaf3790468e; _tt_enable_cookie=1; _ttp=kQuKpQndZ98LJhe8okBLOzcllZn; zgsession=1|10ec3f65-cc76-4a1b-b178-f9c656fa8992; _gid=GA1.2.1908887392.1712680867; pxcts=f7f1353f-f68f-11ee-bd7d-72067409a6f8; _rdt_uuid=1711449796950.3a442d87-9039-4654-8484-ec1a97545d0a; _scid_r=cdd5fff7-8a08-4f62-acb8-beaf3790468e; _hp2_id.1215457233=%7B%22userId%22%3A%224640597236753568%22%2C%22pageviewId%22%3A%22151688407072348%22%2C%22sessionId%22%3A%225784434264779670%22%2C%22identity%22%3Anull%2C%22trackerVersion%22%3A%224.0%22%7D; DoubleClickSession=true; _sctr=1%7C1712599200000; _uetsid=fcfeab20f68f11ee980e052a684ad62f; _uetvid=9a68fe70e47211eeb734b78faf876523; __gads=ID=e128818d8ac9cf1c:T=1710689241:RT=1712680932:S=ALNI_MaDuF-uXAAZ8_PvGThIyhM-kWZtUg; __gpi=UID=00000d3e16131912:T=1710689241:RT=1712680932:S=ALNI_MZsSTVVs4A0SwiHuCg3MEcS1ZC2pg; __eoi=ID=c4eaef58a3ee243d:T=1710689241:RT=1712680932:S=AA-AfjYLXIuCtG0_lu5eGBSvRUX9; _clck=1v2asss%7C2%7Cfks%7C0%7C1537; _clsk=1mdpjt6%7C1712683604625%7C1%7C0%7Ck.clarity.ms%2Fcollect; JSESSIONID=6E966216D5865E62447AD863D1655F6A; search=6|1715275608156%7Crb%3DPhiladelphia%252C-PA%26rect%3D40.137992%252C-74.955763%252C39.848844%252C-75.295343%26disp%3Dmap%26mdm%3Dauto%26sort%3Dpersonalizedsort%26listPriceActive%3D1%26fs%3D0%26fr%3D1%26mmm%3D0%26rs%3D0%26ah%3D0%26singlestory%3D0%26housing-connector%3D0%26abo%3D0%26pool%3D0%26ac%3D0%26waterfront%3D0%26finished%3D0%26unfinished%3D0%26cityview%3D0%26mountainview%3D0%26parkview%3D0%26waterview%3D0%263dhome%3D0%26featuredMultiFamilyBuilding%3D0%26excludeNullAvailabilityDates%3D0%26commuteMode%3Ddriving%26commuteTimeOfDay%3Dnow%26isRoomForRent%3D0%26isEntirePlaceForRent%3D1%09%0913271%09%7B%22isList%22%3Atrue%2C%22isMap%22%3Atrue%7D%09%09%09%09%09; _pxff_cc=U2FtZVNpdGU9TGF4Ow==; _pxff_cfp=1; _pxff_bsco=1; AWSALB=VVuhVYYBZD01aCT+zTR4m4H9s+HiqNDGQGfS73cP4I37didzWNnlWggG/8INak5fvw9vA98h/JXT4wBjJW82u1Me3+XaSnyOM5DTnC/nK+4nh7OEbKezegr8qNXC; AWSALBCORS=VVuhVYYBZD01aCT+zTR4m4H9s+HiqNDGQGfS73cP4I37didzWNnlWggG/8INak5fvw9vA98h/JXT4wBjJW82u1Me3+XaSnyOM5DTnC/nK+4nh7OEbKezegr8qNXC; _gat=1; _px3=74db7368b2899c3023e2b171f7f601b8b8e7175d9fbe226acb520be3fbf189fc:mc3VpbNFsvbVUzsWpJH8RB/Xpgeu/WyR3ZNiaaXSn+nN/kU5ik/HdDicpm1zrqgh4V8NnbFoQ0K//eXprlIrMA==:1000:g8xa/6246DYbzRR/d5ILnxa2ND6csqJkEMgSZeDVBksoUc25ExwhwYNMHUyHRvapPdv+lo4FuJSgzKDCAf25NRG2WLxvcwiS7Xr6dhBOWhTyJSEHlMhQgl0lysEzIJLJesPK1NhQXBcn0BlK99Ad+gvnWrTwibMBgncfidgQxSOC6EwuupvozLQEUEi5cXtNowLsbywA5JXiBJEHNtRtKh31FROe/xPFppicUfzOsSM='
+    cookie_string = 'zguid=24|%24e407de08-dc0a-44e0-b1d8-73e80700c6ce; zgsession=1|e9f221ca-b993-4270-88e2-da3e7f12ec90; zjs_anonymous_id=%22e407de08-dc0a-44e0-b1d8-73e80700c6ce%22; zjs_user_id=null; zg_anonymous_id=%22a6f6bca0-6691-40f9-8f26-e4c0e2d3363f%22; _ga=GA1.2.1149609097.1730056765; _gid=GA1.2.2024784294.1730056765; pxcts=6144ddeb-9498-11ef-816c-d53c9eabac19; _pxvid=6144d37d-9498-11ef-816c-5cf6b7a805c4; _gcl_au=1.1.1360065301.1730056767; _tt_enable_cookie=1; _ttp=LDt9C1a7VWVe8qftnoIU2VV43qf; _scid=HBxdVgmcNNGRkfutcS5rujkhGdDVNc_-; _pin_unauth=dWlkPVpETmlZekZpWVRrdE5HUmpZeTAwWlRnekxXSmtNRFF0WVRjMk56WTVPVGxrTjJJeg; DoubleClickSession=true; _ScCbts=%5B%5D; _sctr=1%7C1730052000000; FSsampler=30183893; _clck=1untuzj%7C2%7Cfqe%7C0%7C1761; JSESSIONID=2F032818CEDABBD95779775031FBAB97; _rdt_uuid=1730056767134.919fa33b-bccb-4182-bb75-3c5f4d04d552; _scid_r=JpxdVgmcNNGRkfutcS5rujkhGdDVNc_-PBZ4-g; _px3=6a1158ccb1ec9cf333cd44367e806f7ae84bb95e3c86b4de30c95c0fddd029d7:Oa9ly2KyuHO2Da3y9Crdze9Fgfoa5Rh8MQdChWguY49lEHWm0RgH17LXjtrh3Ob1BuhrHp/1e5v5W9mKn36jLA==:1000:prfKXyWBBLVQaLpfsBAlEsn4AS0nVTK9xd3sLLyFjhcPFl5mNJ6Iz/k3W3vqqJxnCGyj0Nxcjj3aUtET1dE25xSkcbEDEwCuqo2v0nkECsuEKpyBTHW6GyB18v3lSK9K94LHx4N/7G3V4xgq8tyZerlRn8c91EG26rO+YmLn2OXYZqIWJ9ni9I3w6tzCxLiuO+bKMmzzW7ssx5wqkU5wbhNqNxSW2MsgySD6yUyU+M4=; AWSALB=GQvDB3nUWjbaVw89XA/MvZrtsDSl2WIxtB5JBtkvWtIzTkdX3FcEJEtkw+EWrcib8pZgG3c+TmCYP/FOP1ndqOlp+uNgyst0NX4i17kbDI5vu7SpZI5GMFjrGVec; AWSALBCORS=GQvDB3nUWjbaVw89XA/MvZrtsDSl2WIxtB5JBtkvWtIzTkdX3FcEJEtkw+EWrcib8pZgG3c+TmCYP/FOP1ndqOlp+uNgyst0NX4i17kbDI5vu7SpZI5GMFjrGVec; _uetsid=6229d0f0949811efb3699f37c8408317; _uetvid=6229dca0949811ef933783761be78084; _clsk=xri9ds%7C1730131093841%7C8%7C0%7Cu.clarity.ms%2Fcollect; search=6|1732723094212%7Crect%3D40.137992%2C-74.955763%2C39.848844%2C-75.295343%26rid%3D13271%26disp%3Dmap%26mdm%3Dauto%26p%3D1%26listPriceActive%3D1%26type%3Dhouse%2Ccondo%2Ctownhouse%2Capartment%26fs%3D0%26fr%3D1%26mmm%3D0%26rs%3D0%26singlestory%3D0%26housing-connector%3D0%26parking-spots%3Dnull-%26abo%3D0%26garage%3D0%26pool%3D0%26ac%3D0%26waterfront%3D0%26finished%3D0%26unfinished%3D0%26cityview%3D0%26mountainview%3D0%26parkview%3D0%26waterview%3D0%26hoadata%3D1%26zillow-owned%3D0%263dhome%3D0%26featuredMultiFamilyBuilding%3D0%26student-housing%3D0%26income-restricted-housing%3D0%26military-housing%3D0%26disabled-housing%3D0%26senior-housing%3D0%26excludeNullAvailabilityDates%3D0%26isRoomForRent%3D0%26isEntirePlaceForRent%3D1%26ita%3D0%26stl%3D0%26fur%3D0%26os%3D0%26ca%3D0%26np%3D0%26hasDisabledAccess%3D0%26hasHardwoodFloor%3D0%26areUtilitiesIncluded%3D0%26highSpeedInternetAvailable%3D0%26elevatorAccessAvailable%3D0%26commuteMode%3Ddriving%26commuteTimeOfDay%3Dnow%09%0913271%09%7B%22isList%22%3Atrue%2C%22isMap%22%3Afalse%7D%09%09%09%09%09'
     cookie = SimpleCookie()
     cookie.load(cookie_string)
 
@@ -31,21 +31,21 @@ def parse_new_url(url, page_number, request_id):
 
 def get_home_id():
     # reading CSV file
-    data = read_csv("9_April_24.csv")
+    # data = read_csv("25_04_23.csv")
 
-    # converting column data to list
-    home_ids = data["home_id"].tolist()
-    return sorted(home_ids)
+    # # converting column data to list
+    # home_ids = data["home_id"].tolist()
+    # return sorted(home_ids)
     return []
 
 def get_zillow_url():
     # reading CSV file
-    data = read_csv("9_April_24.csv")
+    # data = read_csv("25_04_23.csv")
 
-    # converting column data to list
-    zillow_urls = data["Zillow url"].tolist()
-    return sorted(zillow_urls)
-    # return []
+    # # converting column data to list
+    # zillow_urls = data["Zillow url"].tolist()
+    # return sorted(zillow_urls)
+    return []
 
 def binary_search(alist, item):
     if not alist:  # list is empty -- our base case
@@ -60,8 +60,3 @@ def binary_search(alist, item):
 
     # otherwise item is in the second half, if at all
     return binary_search(alist[midpoint + 1:], item)
-
-
-# testlist = [0, 1, 2, 8, 13, 17, 19, 32, 42]
-# binary_search(testlist, 3)  # => False
-# binary_search(testlist, 13)  # => True
