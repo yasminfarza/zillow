@@ -6,7 +6,7 @@ from zillow.utils import cookie_parser, parse_new_url, get_home_id, binary_searc
 import json
 
 URL = "https://www.zillow.com/async-create-search-page-state"
-payload = '{"searchQueryState":{"pagination":{},"isMapVisible":true,"mapBounds":{"west":-75.5155676484375,"east":-74.7355383515625,"south":39.72000542341564,"north":40.26604522692997},"usersSearchTerm":"Philadelphia, PA","regionSelection":[{"regionId":13271,"regionType":6}],"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false},"isAllHomes":{"value":true}},"isListVisible":true},"wants":{"cat1":["mapResults"]},"requestId":2,"isDebugRequest":false}'
+payload = '{"searchQueryState":{"pagination":{},"isMapVisible":false,"mapBounds":{"west":-75.38716493847656,"east":-74.86394106152343,"south":39.83240993228022,"north":40.15435271085413},"usersSearchTerm":"Philadelphia, PA","regionSelection":[{"regionId":13271,"regionType":6}],"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false}},"isListVisible":true,"mapZoom":11},"wants":{"cat1":["listResults"]},"requestId":7,"isDebugRequest":false}'
 
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
@@ -38,7 +38,7 @@ class ZillowRentSpider(scrapy.Spider):
             houses = json_resp.get("cat1").get("searchResults").get("mapResults")
 
         for i, house in enumerate(houses):
-            # if i > 2:
+            # if i > 1:
             #     break
             detail_url = house.get("detailUrl")
             if "http" in detail_url:
@@ -123,6 +123,9 @@ class ZillowRentSpider(scrapy.Spider):
                 buildings = json.loads(next_response)["props"]["pageProps"]["initialReduxState"]["gdp"]["building"]
             else:
                 buildings = json.loads(next_response)["props"]["pageProps"]["componentProps"]["initialReduxState"]["gdp"]["building"]
+
+            # What special
+            description = buildings.get("description")
 
             if buildings.get("floorPlans"):
                 title = response.xpath(
@@ -226,6 +229,7 @@ class ZillowRentSpider(scrapy.Spider):
                                 "Availability": "Available Now"
                                 if availablity == "0"
                                 else "",
+                                "Description": description,
                                 "Subsidized": subsidized,
                                 "Unit features": features,
                                 "Unit listing url": f"{response.meta['detail_url']}#unit-{zpid}",
@@ -256,6 +260,7 @@ class ZillowRentSpider(scrapy.Spider):
                             "Availability": "Available Now"
                             if availablity == "0"
                             else "",
+                            "Description": description,
                             "Subsidized": subsidized,
                             "Unit features": features,
                             "Unit listing url": f"{response.meta['detail_url']}#unit-{zpid}",
@@ -288,14 +293,16 @@ class ZillowRentSpider(scrapy.Spider):
 
         except KeyError as e:
             print(e)
+            
             try:
-                if json.loads(next_response)["props"]["pageProps"].get("gdpClientCache"):
+                if json.loads(next_response)["props"]["pageProps"].get("*"):
                     gdpClientCache = json.loads(next_response)["props"]["pageProps"]["gdpClientCache"]
                 else:
                     gdpClientCache = json.loads(next_response)["props"]["pageProps"]["componentProps"]["gdpClientCache"]
                 page_Value = json.loads(gdpClientCache).values()
                 properties = list(page_Value)[0]["property"]
                 zpid = properties["zpid"]
+                description = properties["description"]
 
                 if not binary_search(response.meta["home_ids"], int(zpid)):
                     # Address
@@ -486,6 +493,7 @@ class ZillowRentSpider(scrapy.Spider):
                         "Days on zillow": properties.get("daysOnZillow"),
                         "Contacts": contact,
                         "Availability": available,
+                        "Description": description,
                         "Subsidized": subsidized,
                         "Unit features": unit_features,
                         "Unit listing url": "",
