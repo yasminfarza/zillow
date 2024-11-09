@@ -3,14 +3,15 @@ from inline_requests import inline_requests
 import scrapy
 from contextlib import suppress
 from zillow.utils import cookie_parser, parse_new_url, get_home_id, binary_search, get_zillow_url
+from zillow.functions import get_agent
 import json
 
-URL = "https://www.zillow.com/async-create-search-page-state"
-payload = '{"searchQueryState":{"pagination":{},"isMapVisible":false,"mapBounds":{"west":-75.38716493847656,"east":-74.86394106152343,"south":39.83240993228022,"north":40.15435271085413},"usersSearchTerm":"Philadelphia, PA","regionSelection":[{"regionId":13271,"regionType":6}],"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false}},"isListVisible":true,"mapZoom":11},"wants":{"cat1":["listResults"]},"requestId":7,"isDebugRequest":false}'
+BASE_URL = "https://www.zillow.com"
+URL = f"{BASE_URL}/async-create-search-page-state"
+payload = '{"searchQueryState":{"isMapVisible":false,"mapBounds":{"north":40.768867,"south":40.661622,"east":-74.020405,"west":-74.117057},"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false}},"isListVisible":true,"mapZoom":12,"regionSelection":[{"regionId":25320,"regionType":6}],"pagination":{}},"wants":{"cat1":["listResults"]},"requestId":13,"isDebugRequest":false}'
 
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
-    allowed_domains = ["www.zillow.com"]
 
     def start_requests(self):
         yield scrapy.Request(
@@ -38,17 +39,17 @@ class ZillowRentSpider(scrapy.Spider):
             houses = json_resp.get("cat1").get("searchResults").get("mapResults")
 
         for i, house in enumerate(houses):
-            # if i > 1:
+            # if i > 5:
             #     break
             detail_url = house.get("detailUrl")
             if "http" in detail_url:
                 detail_link = detail_url
             else:
-                detail_link = f"https://www.zillow.com{detail_url}"
+                detail_link = f"{BASE_URL}{detail_url}"
 
-            # if binary_search(response.meta["zillow_urls"], detail_link):
-            #     print("Exist in File  ")
-            #     break
+            if binary_search(response.meta["zillow_urls"], detail_link):
+                print("Exist in File  ")
+                break
             
             yield scrapy.Request(
                 url=detail_link,
@@ -56,6 +57,7 @@ class ZillowRentSpider(scrapy.Spider):
                 cookies=cookie_parser(),
                 meta={
                     "detail_url": detail_link,
+                    "title": "",
                     "current_page": current_page,
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
@@ -63,6 +65,8 @@ class ZillowRentSpider(scrapy.Spider):
                 },
             )
 
+        self.logger.info(f'User-Agent used: {response.request.headers.get("User-Agent")}')
+        
         if current_page <= 25:
             current_page += 1
             request_id += 1
@@ -88,23 +92,83 @@ class ZillowRentSpider(scrapy.Spider):
     @inline_requests
     def parse_apartment_details(self, response):
         referer_url = response.meta["detail_url"]
+        title = response.meta["title"]
         unitNumber = (
             response.meta["unit_number"] if response.meta.get("unit_number") else ""
         )
         current_page = response.meta["current_page"]
         request_id = response.meta["request_id"]
+        
+        # Parent start
+        if parent_title := response.xpath(
+            "//h1[@data-test-id='bdp-building-title']/text()"
+        ).get():
+            title = parent_title
 
+        amenity_list, features, property_list = [], [], []
+        building_features = response.xpath("//div[@class='styles__StyledCategoryGroupHeadingContainer-sc-464t92-2 lewVis']")
+        for building_feature in building_features:
+            
+            # Building Amenities
+            if (building_feature.xpath( ".//h3/text()").get().lower() in ["building amenities"]):
+                building_amenities = building_feature.xpath(".//following-sibling::div[1]/div")
+                for amenity in building_amenities:
+                    b_heading = amenity.xpath(".//h5/text()").get()
+                    for idx, service in enumerate(amenity.xpath(".//ul/li")):
+                        service_text = ""
+                        for text in service.xpath(".//span"):
+                            service_text = "".join(
+                                [i.get() for i in text.xpath(".//text()")]
+                            )
+                        if b_heading and idx < 1:
+                            service_text = f"{b_heading}: {service_text}"
+                            
+                        amenity_list.append(service_text)
+                        
+            # Unit features
+            if (building_feature.xpath( ".//h3/text()").get().lower() in ["unit features", "interior"]):
+                unit_features = building_feature.xpath(".//following-sibling::div[1]/div")
+                for u_feature in unit_features:
+                    u_heading = u_feature.xpath(".//h5/text()").get()
+                    for idx, service in enumerate(u_feature.xpath(".//ul/li")):
+                        service_text = ""
+                        for text in service.xpath(".//span"):
+                            service_text = "".join(
+                                [i.get() for i in text.xpath(".//text()")]
+                            )
+                        if u_heading and idx < 1:
+                            service_text = f"{u_heading}: {service_text}"
+                            
+                        features.append(service_text)
+                        
+            # Property list
+            if (building_feature.xpath( ".//h3/text()").get().lower() in ["property", "properties"]):
+                property_features = building_feature.xpath(".//following-sibling::div[1]/div")
+                for p_feature in property_features:
+                    p_heading = p_feature.xpath(".//h5/text()").get()
+                    for idx, service in enumerate(p_feature.xpath(".//ul/li")):
+                        service_text = ""
+                        for text in service.xpath(".//span"):
+                            service_text = "".join(
+                                [i.get() for i in text.xpath(".//text()")]
+                            )
+                        if p_heading and idx < 1:
+                            service_text = f"{p_heading}: {service_text}"
+                        property_list.append(service_text)
+        # Parent end
+        
         # For full building details link
         if full_building_link := response.xpath(
             "//ul[@class='zsg-tooltip-viewport']/li[1]/div/div/div[2]/a/@href"
         ).get():
-            referer_url = f"https://www.zillow.com{full_building_link}"
+            referer_url = f"{BASE_URL}{full_building_link}"
             yield scrapy.Request(
                 url=referer_url,
                 callback=self.parse_apartment_details,
                 cookies=cookie_parser(),
                 meta={
                     "detail_url": response.meta["detail_url"],
+                    "title": title,
                     "current_page": current_page,
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
@@ -113,50 +177,35 @@ class ZillowRentSpider(scrapy.Spider):
 
         # For apartment floorplans
         next_response = response.xpath("//script[@id='__NEXT_DATA__']/text()").get()
-
-        # with open('before_Full2.json', 'w', encoding="utf-8") as f:
+        page_response = json.loads(next_response)
+        
+        # with open('before_Full.json', 'w', encoding="utf-8") as f:
         #     print("file write")
         #     f.write(next_response)
 
         try:
-            if json.loads(next_response)["props"]["pageProps"].get("initialReduxState"):
-                buildings = json.loads(next_response)["props"]["pageProps"]["initialReduxState"]["gdp"]["building"]
+            if page_response["props"]["pageProps"].get("initialReduxState"):
+                buildings = page_response["props"]["pageProps"]["initialReduxState"]["gdp"]["building"]
             else:
-                buildings = json.loads(next_response)["props"]["pageProps"]["componentProps"]["initialReduxState"]["gdp"]["building"]
+                buildings = page_response["props"]["pageProps"]["componentProps"]["initialReduxState"]["gdp"]["building"]
 
             # What special
             description = buildings.get("description")
 
             if buildings.get("floorPlans"):
-                title = response.xpath(
-                    "//h1[@data-test-id='bdp-building-title']/text()"
-                ).get()
                 address = response.xpath(
                     "//h2[@data-test-id='bdp-building-address']/text()"
                 ).get()
                 prop_website = response.xpath(
                     "//a[@data-test-id='bdp-ppc-link']/@href"
                 ).get()
-
-                # Building Amenities
-                amenity_list = []
-                if (
-                    response.xpath(
-                        "//div[@class='styled__BuildingAmenitiesContainer-sc-1jv0y0i-4 enHuDw']/h3/text()"
-                    ).get()
-                    == "Building Amenities"
-                ):
-                    building_amenities = response.xpath(
-                        "//div[@class='styled__BuildingAmenitiesContainer-sc-1jv0y0i-4 enHuDw'][1]/div"
-                    )
-                    for amenity in building_amenities:
-                        services = amenity.xpath(".//ul/li")
-                        for service in services:
-                            amenity_list.append(service.xpath(".//text()").get())
+                            
                 floorPlans = buildings["floorPlans"]
                 lng = buildings["longitude"]
                 lat = buildings["latitude"]
-                features = buildings["amenityDetails"]["unitFeatures"]
+                
+                if not features:
+                    features = buildings["amenityDetails"]["unitFeatures"]
 
                 for floor in floorPlans:
                     if binary_search(response.meta["home_ids"], int(floor["zpid"])):
@@ -171,33 +220,21 @@ class ZillowRentSpider(scrapy.Spider):
                     }
                     headers = {
                             "Content-Type": "application/json;charset=UTF-8",
-                            "Origin": "https://www.zillow.com",
+                            "Origin": f"{BASE_URL}",
                             "Referer": response.meta["detail_url"],
                         }
                     agent_resp = yield scrapy.Request(
-                        url="https://www.zillow.com/rentals/api/rcf/v1/rcf",
+                        url=f"{BASE_URL}/rentals/api/rcf/v1/rcf",
                         method="POST",
                         body=json.dumps(payload),
                         cookies=cookie_parser(),
                         headers=headers,
                     )
                     agent_info = json.loads(agent_resp.body)
-                    agent_name, business_name = None, None         
-                    with suppress(KeyError):
-                        agent_name = agent_info["propertyInfo"]["agentInfo"]["displayName"]
-                        business_name = agent_info["propertyInfo"]["agentInfo"]["businessName"]
+                    agent = get_agent(agent_info)
                         
                     zillow_days, contacts, subsidized = "", "", ""
-
-                    if not agent_name and not business_name:
-                        agent = "Name undisclosed"
-                    elif not agent_name:
-                        agent = business_name
-                    elif not business_name:
-                        agent = agent_name
-                    else:
-                        agent = f"{agent_name} - {business_name}"
-
+                    
                     # Subsidized
                     subsidized = (
                         "Yes"
@@ -234,6 +271,7 @@ class ZillowRentSpider(scrapy.Spider):
                                 "Unit features": features,
                                 "Unit listing url": f"{response.meta['detail_url']}#unit-{zpid}",
                                 "Building amenities": amenity_list,
+                                "Property": property_list,
                                 "Zillow url": response.meta["detail_url"],
                                 "Property website": prop_website,
                                 "Leasing Agent": agent,
@@ -265,6 +303,7 @@ class ZillowRentSpider(scrapy.Spider):
                             "Unit features": features,
                             "Unit listing url": f"{response.meta['detail_url']}#unit-{zpid}",
                             "Building amenities": amenity_list,
+                            "Property": property_list,
                             "Zillow url": response.meta["detail_url"],
                             "Property website": prop_website,
                             "Leasing Agent": agent,
@@ -276,7 +315,7 @@ class ZillowRentSpider(scrapy.Spider):
                 for ungroupedUnit in ungroupedUnits:
                     if ungroupedUnit["listingType"] == "FOR_RENT":
                         unitNumber = ungroupedUnit["unitNumber"]
-                        referer_url = f"https://www.zillow.com{ungroupedUnit['hdpUrl']}"
+                        referer_url = f"{BASE_URL}{ungroupedUnit['hdpUrl']}"
 
                         yield scrapy.Request(
                             url=referer_url,
@@ -284,6 +323,7 @@ class ZillowRentSpider(scrapy.Spider):
                             cookies=cookie_parser(),
                             meta={
                                 "detail_url": response.meta["detail_url"],
+                                "title": title,
                                 "unit_number": unitNumber,
                                 "current_page": current_page,
                                 "request_id": request_id,
@@ -293,12 +333,15 @@ class ZillowRentSpider(scrapy.Spider):
 
         except KeyError as e:
             print(e)
-            
-            try:
-                if json.loads(next_response)["props"]["pageProps"].get("*"):
-                    gdpClientCache = json.loads(next_response)["props"]["pageProps"]["gdpClientCache"]
+
+            try:  
+                # Get orginal request path
+                unit_listing_url = page_response["query"].get("originalReqUrlPath")
+                
+                if page_response["props"]["pageProps"].get("*"):
+                    gdpClientCache = page_response["props"]["pageProps"]["gdpClientCache"]
                 else:
-                    gdpClientCache = json.loads(next_response)["props"]["pageProps"]["componentProps"]["gdpClientCache"]
+                    gdpClientCache = page_response["props"]["pageProps"]["componentProps"]["gdpClientCache"]
                 page_Value = json.loads(gdpClientCache).values()
                 properties = list(page_Value)[0]["property"]
                 zpid = properties["zpid"]
@@ -307,7 +350,7 @@ class ZillowRentSpider(scrapy.Spider):
                 if not binary_search(response.meta["home_ids"], int(zpid)):
                     # Address
                     address = ""
-                    for addr in response.xpath("//div[@class='hdp__sc-1h7w8w-0 gqiYGo']/h1"):
+                    for addr in response.xpath("//div[@class='styles__AddressWrapper-fshdp-8-100-2__sc-13x5vko-0 jrtioM']/h1"):
                         address = "".join([i.get() for i in addr.xpath(".//text()")])
 
                     # availablity
@@ -321,29 +364,59 @@ class ZillowRentSpider(scrapy.Spider):
                             available = "Available Now"
 
                     # featurs
-                    unit_features, building_amenities = [], []
-                    spacer_res = response.xpath(
-                        "//div[@class='Spacer-c11n-8-84-3__sc-17suqs2-0 hJwtCN']"
-                    )
-
-                    for spacer in spacer_res:
-                        features_resp = spacer.xpath(".//div/div")
-                        for feature in features_resp:
-                            if feature.xpath(".//h6/text()").get() == "Bedrooms & bathrooms":
-                                continue
-                            listing = feature.xpath(".//ul/li")
-                            for fact in listing:
-                                full_string = ""
-                                for text in fact.xpath(".//span"):
-                                    full_string = "".join(
-                                        [i.get() for i in text.xpath(".//text()")]
-                                    )
-
-                                if spacer.xpath(".//h5/text()").get() == "Interior":
-                                    unit_features.append(full_string)
-
-                                if spacer.xpath(".//h5/text()").get() == "Property":
-                                    building_amenities.append(full_string)
+                    amenities, u_features, f_property_list = [], [], []
+                    building_features = response.xpath("//div[@class='styles__StyledCategoryGroupHeadingContainer-fshdp-8-100-2__sc-1mj0p8k-2 ibHRlf']")
+                    for building_feature in building_features:
+                        
+                        # Building Amenities
+                        if (building_feature.xpath( ".//h3/text()").get().lower() in ["building amenities"]):
+                            building_amenities = building_feature.xpath(".//following-sibling::div[1]/div")
+                            for amenity in building_amenities:
+                                b_heading = amenity.xpath(".//h6/text()").get()
+                                for idx, service in enumerate(amenity.xpath(".//ul/li")):
+                                    service_text = ""
+                                    for text in service.xpath(".//span"):
+                                        service_text = "".join(
+                                            [i.get() for i in text.xpath(".//text()")]
+                                        )
+                                    if b_heading and idx < 1:
+                                        service_text = f"{b_heading}: {service_text}"
+                                    amenities.append(service_text)
+                                    
+                        # Unit features
+                        if (building_feature.xpath( ".//h3/text()").get().lower() in ["unit features", "interior"]):
+                            unit_features = building_feature.xpath(".//following-sibling::div[1]/div")
+                            for u_feature in unit_features:
+                                u_heading = u_feature.xpath(".//h6/text()").get()
+                                for idx, service in enumerate(u_feature.xpath(".//ul/li")):
+                                    service_text = ""
+                                    for text in service.xpath(".//span"):
+                                        service_text = "".join(
+                                            [i.get() for i in text.xpath(".//text()")]
+                                        )
+                                    if u_heading and idx < 1:
+                                        service_text = f"{u_heading}: {service_text}"
+                                    u_features.append(service_text)
+                                    
+                        # Property list
+                        if (building_feature.xpath( ".//h3/text()").get().lower() in ["property", "properties"]):
+                            property_features = building_feature.xpath(".//following-sibling::div[1]/div")
+                            for p_feature in property_features:
+                                p_heading = p_feature.xpath(".//h6/text()").get()
+                                for idx, service in enumerate(p_feature.xpath(".//ul/li")):
+                                    service_text = ""
+                                    for text in service.xpath(".//span"):
+                                        service_text = "".join(
+                                            [i.get() for i in text.xpath(".//text()")]
+                                        )
+                                    if p_heading and idx < 1:
+                                        service_text = f"{p_heading}: {service_text}"
+                                    f_property_list.append(service_text)
+                                    
+                    
+                    unit_features = u_features if u_features else features
+                    building_amenities = amenities if amenities else amenity_list
+                    property_list = f_property_list if f_property_list else property_list
 
                     payload = {
                         "zpid": zpid,
@@ -354,7 +427,7 @@ class ZillowRentSpider(scrapy.Spider):
                     }
                     headers = {
                             "Content-Type": "application/json;charset=UTF-8",
-                            "Origin": "https://www.zillow.com",
+                            "Origin": f"{BASE_URL}",
                             "Referer": response.meta["detail_url"],
                         }
                     agent_resp = yield scrapy.Request(
@@ -365,22 +438,7 @@ class ZillowRentSpider(scrapy.Spider):
                         headers=headers,
                     )
                     agent_info = json.loads(agent_resp.body)
-                    
-                    agent_name, business_name = None, None
-                    try:
-                        agent_name = agent_info["propertyInfo"]["agentInfo"]["displayName"]
-                        business_name = agent_info["propertyInfo"]["agentInfo"]["businessName"]
-                    except:
-                        pass
-
-                    if not agent_name and not business_name:
-                        agent = "Name undisclosed"
-                    elif not agent_name:
-                        agent = business_name
-                    elif not business_name:
-                        agent = agent_name
-                    else:
-                        agent = f"{agent_name} - {business_name}"
+                    agent = get_agent(agent_info)
 
                     # Subsidized
                     subsidized = (
@@ -455,11 +513,11 @@ class ZillowRentSpider(scrapy.Spider):
                     }
                     headers = {
                             "Content-Type": "application/json;charset=UTF-8",
-                            "Origin": "https://www.zillow.com",
+                            "Origin": f"{BASE_URL}",
                             "Referer": referer_url,
                         }
                     overview_resp = yield scrapy.Request(
-                        url=f"https://www.zillow.com/graphql/?zpid={zpid}&operationName=ListingContactDetailsQuery",
+                        url=f"{BASE_URL}/graphql/?zpid={zpid}&operationName=ListingContactDetailsQuery",
                         method="POST",
                         body=json.dumps(contact_payload),
                         cookies=cookie_parser(),
@@ -479,7 +537,7 @@ class ZillowRentSpider(scrapy.Spider):
 
                     yield {
                         "home_id": zpid,
-                        "Title": "",
+                        "Title": title,
                         "Address": address,
                         "Name": "",
                         "Beds": properties.get("bedrooms"),
@@ -496,8 +554,9 @@ class ZillowRentSpider(scrapy.Spider):
                         "Description": description,
                         "Subsidized": subsidized,
                         "Unit features": unit_features,
-                        "Unit listing url": "",
+                        "Unit listing url": f"https://www.zillow.com{unit_listing_url}",
                         "Building amenities": building_amenities,
+                        "Property": property_list,
                         "Zillow url": response.meta["detail_url"],
                         "Property website": "",
                         "Leasing Agent": agent,
