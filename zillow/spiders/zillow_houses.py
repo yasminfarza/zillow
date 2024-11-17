@@ -1,6 +1,6 @@
 import scrapy
 from scrapy.loader import ItemLoader
-from zillow.utils import cookie_parser, parse_new_url
+from zillow.utils import cookie_parser
 from zillow.items import ZillowItem
 import json
 import w3lib.html

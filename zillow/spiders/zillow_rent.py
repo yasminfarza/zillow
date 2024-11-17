@@ -2,13 +2,13 @@ from datetime import datetime
 from inline_requests import inline_requests
 import scrapy
 from contextlib import suppress
-from zillow.utils import cookie_parser, parse_new_url, get_home_id, binary_search, get_zillow_url
+from zillow.utils import cookie_parser, get_home_id, binary_search, get_zillow_url
 from zillow.functions import get_agent
 import json
 
 BASE_URL = "https://www.zillow.com"
 URL = f"{BASE_URL}/async-create-search-page-state"
-payload = '{"searchQueryState":{"isMapVisible":false,"mapBounds":{"north":40.768867,"south":40.661622,"east":-74.020405,"west":-74.117057},"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false}},"isListVisible":true,"mapZoom":12,"regionSelection":[{"regionId":25320,"regionType":6}],"pagination":{}},"wants":{"cat1":["listResults"]},"requestId":13,"isDebugRequest":false}'
+payload = '{"searchQueryState":{"isMapVisible":false,"mapBounds":{"west":-71.191113,"east":-70.904137,"south":42.22788,"north":42.398867},"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false}},"isListVisible":true,"regionSelection":[{"regionId":44269}],"pagination":{}},"wants":{"cat1":["listResults"]},"requestId":4,"isDebugRequest":false}'
 
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
@@ -22,42 +22,41 @@ class ZillowRentSpider(scrapy.Spider):
             cookies=cookie_parser(),
             meta={
                 "currentPage": 1,
-                "request_id": 2,
+                "request_id": 4,
                 "home_ids": get_home_id(),
                 "zillow_urls": get_zillow_url(),
             },
         )
 
     def parse(self, response):
-        current_page = response.meta["currentPage"]
-        request_id = response.meta["request_id"]
-        
+        current_page = response.meta.get("currentPage", 1)
+        request_id = response.meta.get("request_id", 2)
+
+        # Load the JSON response
         json_resp = json.loads(response.body)
+        houses = json_resp.get("cat1", {}).get("searchResults", {}).get("listResults") or \
+                json_resp.get("cat1", {}).get("searchResults", {}).get("mapResults", [])
 
-        houses = json_resp.get("cat1").get("searchResults").get("listResults")
-        if not houses:
-            houses = json_resp.get("cat1").get("searchResults").get("mapResults")
-
-        for i, house in enumerate(houses):
-            # if i > 5:
-            #     break
+        # Iterate over houses
+        for house in houses:
             detail_url = house.get("detailUrl")
-            if "http" in detail_url:
-                detail_link = detail_url
-            else:
-                detail_link = f"{BASE_URL}{detail_url}"
+            if not detail_url:
+                continue
 
+            detail_link = detail_url if detail_url.startswith("http") else f"{BASE_URL}{detail_url}"
+
+            # Skip if URL already processed
             if binary_search(response.meta["zillow_urls"], detail_link):
-                print("Exist in File  ")
-                break
+                self.logger.info("URL already exists in file, skipping.")
+                continue
             
+            # Yield request for apartment detailslliiut   7
             yield scrapy.Request(
                 url=detail_link,
                 callback=self.parse_apartment_details,
                 cookies=cookie_parser(),
                 meta={
                     "detail_url": detail_link,
-                    "title": "",
                     "current_page": current_page,
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
@@ -65,34 +64,35 @@ class ZillowRentSpider(scrapy.Spider):
                 },
             )
 
-        self.logger.info(f'User-Agent used: {response.request.headers.get("User-Agent")}')
-        
-        if current_page <= 25:
+        # Pagination: Proceed if within page limit
+        if current_page < 25:
             current_page += 1
             request_id += 1
 
+            # Update query for next page
             query_string = json.loads(payload)
             query_string["requestId"] = request_id
-            search_query_state = query_string["searchQueryState"]
-            search_query_state["pagination"] = {"currentPage": current_page}
-            query_string["searchQueryState"] = search_query_state
+            query_string["searchQueryState"]["pagination"] = {"currentPage": current_page}
 
+            # Yield request for the next page
             yield scrapy.Request(
                 url=URL,
                 callback=self.parse,
                 method="PUT",
                 body=json.dumps(query_string),
                 cookies=cookie_parser(),
-                meta={"currentPage": current_page, "request_id": request_id, 
+                meta={
+                    "currentPage": current_page,
+                    "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
                     "zillow_urls": response.meta["zillow_urls"],
-                    },
+                },
             )
 
     @inline_requests
     def parse_apartment_details(self, response):
         referer_url = response.meta["detail_url"]
-        title = response.meta["title"]
+        title = response.meta.get("title", "")
         unitNumber = (
             response.meta["unit_number"] if response.meta.get("unit_number") else ""
         )
@@ -565,7 +565,3 @@ class ZillowRentSpider(scrapy.Spider):
 
             except Exception as ex:
                 print(f"Error: {ex}")
-                with open("log_error.txt", "a") as f:
-                    f.write(response.meta["detail_url"])
-                    f.write("\n")
-                    f.close()
