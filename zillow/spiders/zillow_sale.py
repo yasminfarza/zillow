@@ -1,6 +1,6 @@
 import scrapy
 from datetime import datetime
-from zillow.utils import cookie_parser, parse_new_url, binary_search
+from zillow.utils import cookie_parser, binary_search
 from inline_requests import inline_requests
 from contextlib import suppress
 import json

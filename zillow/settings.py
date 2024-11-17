@@ -33,6 +33,7 @@ FEED_EXPORT_ENCODING = "utf-8"
 # Enable the middleware to set the proxy for each request
 DOWNLOADER_MIDDLEWARES = {
     'zillow.middlewares.RandomHeaderMiddleware': 543,
+    'zillow.middlewares.CustomHttpErrorMiddleware': 543,
     'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
     'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
 }

@@ -7,6 +7,10 @@ from scrapy import signals
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
+import logging
+from scrapy.spidermiddlewares.httperror import HttpErrorMiddleware
+from scrapy.http import Response
+from scrapy.exceptions import NotConfigured
 
 
 class ZillowSpiderMiddleware:
@@ -112,6 +116,8 @@ class RandomHeaderMiddleware:
             'en-US,en;q=0.9', 'en-GB,en;q=0.8', 'en;q=0.7'
         ]
         self.user_agent_options = [
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+            
             # Chrome on Windows
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
@@ -151,3 +157,30 @@ class RandomHeaderMiddleware:
         request.headers['Accept-Language'] = random.choice(self.accept_language_options)
         request.headers['Referer'] = random.choice(self.referer_options)
         request.headers['Content-Type'] = "application/json"
+
+
+class CustomHttpErrorMiddleware(HttpErrorMiddleware):
+    def __init__(self, settings):
+        super().__init__(settings)
+        # Set up logging to log errors to a file
+        self.logger = logging.getLogger(__name__)
+        log_file = settings.get('HTTPERROR_LOG_FILE', 'http_errors.log')
+        handler = logging.FileHandler(log_file)
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.ERROR)
+
+    def process_response(self, request, response, spider):
+        print("response working")
+        if response.status == 403:
+            with open("log_error.txt", "a") as f:
+                f.write(request.url)
+                f.write("\n")
+        return super().process_response(request, response, spider)
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        if not crawler.settings.getbool('HTTPERROR_ENABLED'):
+            raise NotConfigured
+        return super().from_crawler(crawler, *args, **kwargs)
+    

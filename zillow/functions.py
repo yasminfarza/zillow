@@ -1,27 +1,27 @@
-from contextlib import suppress
-
 def get_agent(agent_info):
-    agent_name, business_name = None, None         
-    with suppress(KeyError):
-        agent_name = agent_info["propertyInfo"]["agentInfo"]["displayName"]
-        business_name = agent_info["propertyInfo"]["agentInfo"]["businessName"]
-        phone_no = agent_info["propertyInfo"]["agentInfo"]["phoneNumber"]
-        
-    zillow_days, contacts, subsidized = "", "", ""
-
-    if not agent_name and not business_name:
-        agent = "Name undisclosed"
-    elif not agent_name:
-        agent = business_name
-    elif not business_name:
-        agent = agent_name
-    else:
+    # Extract values using .get() to avoid KeyError
+    agent_info = agent_info.get("propertyInfo", {}).get("agentInfo", {})
+    
+    agent_name = agent_info.get("displayName")
+    business_name = agent_info.get("businessName")
+    phone_no = agent_info.get("phoneNumber")
+    verified = agent_info.get("verified", False)
+    
+    # Determine the agent string based on available information
+    if agent_name and business_name:
         agent = f"{agent_name} - {business_name}"
-        
+    elif agent_name:
+        agent = agent_name
+    elif business_name:
+        agent = business_name
+    else:
+        agent = "Name undisclosed"
+    
+    # Add phone number if available
     if phone_no:
         agent = f"{agent}, {phone_no}"
     
-    verified = agent_info["propertyInfo"]["verified"]
+    # Add verified status if applicable
     if verified:
         agent = f"{agent} (Verified Source)"
     
