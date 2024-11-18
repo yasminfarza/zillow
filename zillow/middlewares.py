@@ -11,6 +11,7 @@ import logging
 from scrapy.spidermiddlewares.httperror import HttpErrorMiddleware
 from scrapy.http import Response
 from scrapy.exceptions import NotConfigured
+from zillow import settings
 
 
 class ZillowSpiderMiddleware:
@@ -148,7 +149,7 @@ class RandomHeaderMiddleware:
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.57'
         ]
         self.referer_options = [
-            'https://www.zillow.com/homes/for_rent/'
+            settings.REFERER
         ]
 
     def process_request(self, request, spider):

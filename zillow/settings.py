@@ -53,3 +53,4 @@ RETRY_TIMES = 3
 COOKIES = os.environ["COOKIES"]
 PAYLOAD = os.environ["PAYLOAD"]
 FILENAME = os.environ["FILENAME"]
+REFERER = os.environ["REFERER"]
