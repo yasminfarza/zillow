@@ -1,4 +1,8 @@
 import random
+import os
+import dotenv
+
+dotenv.load_dotenv()
 
 BOT_NAME = "zillow"
 
@@ -33,7 +37,6 @@ FEED_EXPORT_ENCODING = "utf-8"
 # Enable the middleware to set the proxy for each request
 DOWNLOADER_MIDDLEWARES = {
     'zillow.middlewares.RandomHeaderMiddleware': 543,
-    'zillow.middlewares.CustomHttpErrorMiddleware': 543,
     'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
     'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
 }
@@ -46,4 +49,7 @@ CONCURRENT_REQUESTS = 5
 RETRY_ENABLED = True
 RETRY_TIMES = 3
 
-
+# Variables
+COOKIES = os.environ["COOKIES"]
+PAYLOAD = os.environ["PAYLOAD"]
+FILENAME = os.environ["FILENAME"]

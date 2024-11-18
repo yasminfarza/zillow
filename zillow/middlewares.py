@@ -157,30 +157,3 @@ class RandomHeaderMiddleware:
         request.headers['Accept-Language'] = random.choice(self.accept_language_options)
         request.headers['Referer'] = random.choice(self.referer_options)
         request.headers['Content-Type'] = "application/json"
-
-
-class CustomHttpErrorMiddleware(HttpErrorMiddleware):
-    def __init__(self, settings):
-        super().__init__(settings)
-        # Set up logging to log errors to a file
-        self.logger = logging.getLogger(__name__)
-        log_file = settings.get('HTTPERROR_LOG_FILE', 'http_errors.log')
-        handler = logging.FileHandler(log_file)
-        handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.ERROR)
-
-    def process_response(self, request, response, spider):
-        print("response working")
-        if response.status == 403:
-            with open("log_error.txt", "a") as f:
-                f.write(request.url)
-                f.write("\n")
-        return super().process_response(request, response, spider)
-
-    @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs):
-        if not crawler.settings.getbool('HTTPERROR_ENABLED'):
-            raise NotConfigured
-        return super().from_crawler(crawler, *args, **kwargs)
-    
