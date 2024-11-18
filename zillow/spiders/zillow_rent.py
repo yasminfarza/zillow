@@ -5,10 +5,11 @@ from contextlib import suppress
 from zillow.utils import cookie_parser, get_home_id, binary_search, get_zillow_url
 from zillow.functions import get_agent
 import json
+from zillow import settings
 
 BASE_URL = "https://www.zillow.com"
 URL = f"{BASE_URL}/async-create-search-page-state"
-payload = '{"searchQueryState":{"isMapVisible":false,"mapBounds":{"west":-71.191113,"east":-70.904137,"south":42.22788,"north":42.398867},"filterState":{"isForRent":{"value":true},"isForSaleByAgent":{"value":false},"isForSaleByOwner":{"value":false},"isNewConstruction":{"value":false},"isComingSoon":{"value":false},"isAuction":{"value":false},"isForSaleForeclosure":{"value":false}},"isListVisible":true,"regionSelection":[{"regionId":44269}],"pagination":{}},"wants":{"cat1":["listResults"]},"requestId":4,"isDebugRequest":false}'
+payload = settings.PAYLOAD
 
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
@@ -22,7 +23,7 @@ class ZillowRentSpider(scrapy.Spider):
             cookies=cookie_parser(),
             meta={
                 "currentPage": 1,
-                "request_id": 4,
+                "request_id": 5,
                 "home_ids": get_home_id(),
                 "zillow_urls": get_zillow_url(),
             },
@@ -92,6 +93,12 @@ class ZillowRentSpider(scrapy.Spider):
     @inline_requests
     def parse_apartment_details(self, response):
         referer_url = response.meta["detail_url"]
+        
+        if response.status == 403:
+            with open("log_error.txt", "a") as f:
+                f.write(referer_url)
+                f.write("\n")
+                
         title = response.meta.get("title", "")
         unitNumber = (
             response.meta["unit_number"] if response.meta.get("unit_number") else ""
