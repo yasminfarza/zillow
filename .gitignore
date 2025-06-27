@@ -1,7 +1,7 @@
 .vscode
 dataset
 *.json
-*.csv
+# *.csv
 */__pycache__
 */*/__pycache__
 env
