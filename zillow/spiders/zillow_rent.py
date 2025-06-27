@@ -115,6 +115,7 @@ class ZillowRentSpider(scrapy.Spider):
                 "Tags": "",
                 "Description": "",
                 "Image": "",
+                "FloorImage": "",
                 "Special offer": "",
                 "Subsidized": "", 
                 "Unit listing url": "",
@@ -299,10 +300,14 @@ class ZillowRentSpider(scrapy.Spider):
             description = buildings.get("description")
             home_type = buildings.get("homeTypes")
 
-            image_link = ''
+            image_link = []
             if photos := buildings.get("photos"):
-                if webp_photos := photos[0]["mixedSources"]["webp"]:
-                    image_link = webp_photos[-1]["url"]
+                for photo in photos:
+                    if photo.get("mixedSources"):
+                        if webp_photos := photo["mixedSources"]["webp"]:
+                            image_link.append(webp_photos)
+                        elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                            image_link.append(jpg_photos)
             
                 
             # Price History
@@ -377,11 +382,30 @@ class ZillowRentSpider(scrapy.Spider):
                         if agent_info["propertyInfo"]["maxLowIncomeList"]
                         else "No"
                     )
+                    
+                    # Gallery Photos
+                    floor_image_link = []
+                    if photos := floor.get("photos"):
+                        for photo in photos:
+                            if photo.get("mixedSources"):
+                                if webp_photos := photo["mixedSources"]["webp"]:
+                                    floor_image_link.append(webp_photos)
+                                elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                                    floor_image_link.append(jpg_photos)
 
                     if floor.get("units"):
                         for unit in floor["units"]:
                             availablity = unit.get("availableFrom")
                             zpid = unit.get("zpid")
+                            
+                            unit_image_link = []
+                            if photos := unit.get("photos"):
+                                for photo in photos:
+                                    if photo.get("mixedSources"):
+                                        if webp_photos := photo["mixedSources"]["webp"]:
+                                            unit_image_link.append(webp_photos)
+                                        elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                                            unit_image_link.append(jpg_photos)
 
                             data.update({
                                 "home_id": zpid,
@@ -407,6 +431,7 @@ class ZillowRentSpider(scrapy.Spider):
                                 "Tags": tags,
                                 "Description": description,
                                 "Image": image_link,
+                                "FloorImage": unit_image_link,
                                 "Special offer": special_offers,
                                 "Subsidized": subsidized, 
                                 "Unit listing url": f"{response.meta['detail_url']}#unit-{zpid}",
@@ -448,6 +473,7 @@ class ZillowRentSpider(scrapy.Spider):
                             "Tags": tags,
                             "Description": description,
                             "Image": image_link,
+                            "FloorImage": floor_image_link,
                             "Special offer": special_offers,
                             "Subsidized": subsidized,
                             "Unit listing url": f"{response.meta['detail_url']}#unit-{zpid}",
@@ -504,10 +530,14 @@ class ZillowRentSpider(scrapy.Spider):
                 description = properties["description"]
                 schools = properties["schools"]
                 
-                image_link, home_type = '', properties.get("homeType")
+                image_link, home_type = [], properties.get("homeType")
                 if photos := properties["responsivePhotos"]:
-                    if webp_photos := photos[0]["mixedSources"]["webp"]:
-                        image_link = webp_photos[-1]["url"]
+                    for photo in photos:
+                        if photo.get("mixedSources"):
+                            if webp_photos := photo["mixedSources"]["webp"]:
+                                image_link.append(webp_photos)
+                            elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                                image_link.append(jpg_photos)
                         
                     if not home_type:
                         home_type = photos[0]["homeType"]
