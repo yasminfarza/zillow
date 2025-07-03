@@ -2,6 +2,8 @@
 dataset
 *.json
 *.csv
+*.txt
+*.log
 */__pycache__
 */*/__pycache__
 env
