@@ -304,9 +304,9 @@ class ZillowRentSpider(scrapy.Spider):
             if photos := buildings.get("photos"):
                 for photo in photos:
                     if photo.get("mixedSources"):
-                        if webp_photos := photo["mixedSources"]["webp"]:
+                        if webp_photos := photo["mixedSources"]["webp"][-1]['url']:
                             image_link.append(webp_photos)
-                        elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                        elif jpg_photos := photo["mixedSources"]["jpeg"][-1]['url']:
                             image_link.append(jpg_photos)
             
                 
@@ -317,16 +317,41 @@ class ZillowRentSpider(scrapy.Spider):
                 price_history.append(f"Date: {priceHistory.get('date')}, Event: {priceHistory.get('event')}, Price: {priceHistory.get('price')}, pricePerSquareFoot: {priceHistory.get('pricePerSquareFoot')}, Rate: {priceHistory.get('priceChangeRate')}, Source: {priceHistory.get('source', '-')}")
 
             # Nearby schools
-            schools = buildings.get("assignedSchools", [])
+            assigne_schools = buildings.get("assignedSchools", [])
+            schools = []
+            for school in assigne_schools:
+                school_info = {
+                    "name": school.get("name", ""),
+                    "rating": school.get("rating", ""),
+                    "level": school.get("level", ""),
+                    "grades": school.get("grades", ""),
+                    "link": school.get("link", ""),
+                    "type": school.get("type", ""),
+                }
+                schools.append(school_info)
             
             # scores
             getting_around = []
             if walk_scores := buildings.get("walkScore"):
-                getting_around.append(f"Walk Score: {walk_scores}")
+                walk_score = {
+                                "description": walk_scores.get("description", ""),
+                                "walkscore": walk_scores.get("walkscore", ""),
+                                "ws_link": walk_scores.get("ws_link", "")
+                            }
+                getting_around.append(f"Walk Score: {walk_score}")
             if transit_scores := buildings.get("transitScore"):
-                getting_around.append(f"Transit Score: {transit_scores}")
+                transit_score = {
+                                "description": transit_scores.get("description", ""),
+                                "transit_score": transit_scores.get("transit_score", ""),
+                                "ws_link": transit_scores.get("ws_link", "")
+                            }
+                getting_around.append(f"Transit Score: {transit_score}")
             if bike_scores := buildings.get("bikeScore"):
-                getting_around.append(f"Bike Score: {bike_scores}")
+                bike_score = {
+                                "description": bike_scores.get("description", ""),
+                                "bikescore": bike_scores.get("bikescore", ""),
+                            }
+                getting_around.append(f"Bike Score: {bike_score}")
                 
             data.update({
                 "Getting around": getting_around,
@@ -388,9 +413,9 @@ class ZillowRentSpider(scrapy.Spider):
                     if photos := floor.get("photos"):
                         for photo in photos:
                             if photo.get("mixedSources"):
-                                if webp_photos := photo["mixedSources"]["webp"]:
+                                if webp_photos := photo["mixedSources"]["webp"][-1]['url']:
                                     floor_image_link.append(webp_photos)
-                                elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                                elif jpg_photos := photo["mixedSources"]["jpeg"][-1]['url']:
                                     floor_image_link.append(jpg_photos)
 
                     if floor.get("units"):
@@ -402,9 +427,9 @@ class ZillowRentSpider(scrapy.Spider):
                             if photos := unit.get("photos"):
                                 for photo in photos:
                                     if photo.get("mixedSources"):
-                                        if webp_photos := photo["mixedSources"]["webp"]:
+                                        if webp_photos := photo["mixedSources"]["webp"][-1]['url']:
                                             unit_image_link.append(webp_photos)
-                                        elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                                        elif jpg_photos := photo["mixedSources"]["jpeg"][-1]['url']:
                                             unit_image_link.append(jpg_photos)
 
                             data.update({
@@ -528,15 +553,27 @@ class ZillowRentSpider(scrapy.Spider):
                 properties = list(page_Value)[0]["property"]
                 zpid = properties["zpid"]
                 description = properties["description"]
-                schools = properties["schools"]
+                prop_schools = properties.get("schools", [])
+                
+                schools = []
+                for school in prop_schools:
+                    school_info = {
+                        "name": school.get("name", ""),
+                        "rating": school.get("rating", ""),
+                        "level": school.get("level", ""),
+                        "grades": school.get("grades", ""),
+                        "link": school.get("link", ""),
+                        "type": school.get("type", ""),
+                    }
+                    schools.append(school_info)
                 
                 image_link, home_type = [], properties.get("homeType")
                 if photos := properties["responsivePhotos"]:
                     for photo in photos:
                         if photo.get("mixedSources"):
-                            if webp_photos := photo["mixedSources"]["webp"]:
+                            if webp_photos := photo["mixedSources"]["webp"][-1]['url']:
                                 image_link.append(webp_photos)
-                            elif jpg_photos := photo["mixedSources"]["jpeg"]:
+                            elif jpg_photos := photo["mixedSources"]["jpeg"][-1]['url']:
                                 image_link.append(jpg_photos)
                         
                     if not home_type:
@@ -730,9 +767,31 @@ class ZillowRentSpider(scrapy.Spider):
                         headers=headers,
                     )
                     score_data = json.loads(score_resp.body)
-                    getting_around = ""
+                    getting_around = []
                     with suppress(KeyError):
-                        getting_around = score_data["data"]["property"]
+                        getting_around_prop = score_data["data"]["property"]
+                        if walk_scores := getting_around_prop.get("walkScore"):
+                            walk_score = {
+                                "description": walk_scores.get("description", ""),
+                                "walkscore": walk_scores.get("walkscore", ""),
+                                "ws_link": walk_scores.get("ws_link", "")
+                            }
+                            getting_around.append(f"Walk Score: {walk_score}")
+                            
+                        if transit_scores := getting_around_prop.get("transitScore"):
+                            transit_score = {
+                                "description": transit_scores.get("description", ""),
+                                "transit_score": transit_scores.get("transit_score", ""),
+                                "ws_link": transit_scores.get("ws_link", "")
+                            }
+                            getting_around.append(f"Transit Score: {transit_score}")
+                            
+                        if bike_scores := getting_around_prop.get("bikeScore"):
+                            bike_score = {
+                                "description": bike_scores.get("description", ""),
+                                "bikescore": bike_scores.get("bikescore", ""),
+                            }
+                            getting_around.append(f"Bike Score: {bike_score}")
                         
                     data.update({
                         "home_id": zpid,
