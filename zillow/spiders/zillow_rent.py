@@ -11,6 +11,8 @@ BASE_URL = "https://www.zillow.com"
 URL = f"{BASE_URL}/async-create-search-page-state"
 payload = settings.PAYLOAD
 
+# proxy_url = "http://scrapyfarzana:m~3E2glX3WywCz4qqj@gate.decodo.com:7000"
+
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
 
@@ -26,12 +28,14 @@ class ZillowRentSpider(scrapy.Spider):
                 "request_id": 5,
                 "home_ids": get_home_id(),
                 "zillow_urls": get_zillow_url(),
+                # "proxy": proxy_url,
             },
         )
 
     def parse(self, response):
         current_page = response.meta.get("currentPage", 1)
         request_id = response.meta.get("request_id", 3)
+        print(f"Current Page: {current_page}")
 
         # Load the JSON response
         json_resp = json.loads(response.body)
@@ -65,6 +69,7 @@ class ZillowRentSpider(scrapy.Spider):
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
                     "zillow_urls": response.meta["zillow_urls"],
+                    # "proxy": proxy_url,
                 },
             )
 
@@ -90,6 +95,7 @@ class ZillowRentSpider(scrapy.Spider):
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
                     "zillow_urls": response.meta["zillow_urls"],
+                    # "proxy": proxy_url,
                 },
             )
 
@@ -279,6 +285,7 @@ class ZillowRentSpider(scrapy.Spider):
                     "current_page": current_page,
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
+                    # "proxy": proxy_url,
                 },
             )
 
@@ -395,6 +402,7 @@ class ZillowRentSpider(scrapy.Spider):
                         body=json.dumps(payload),
                         cookies=cookie_parser(),
                         headers=headers,
+                        # meta={"proxy": proxy_url,}
                     )
                     agent_info = json.loads(agent_resp.body)
                     agent = get_agent(agent_info)
@@ -535,6 +543,7 @@ class ZillowRentSpider(scrapy.Spider):
                                 "current_page": current_page,
                                 "request_id": request_id,
                                 "home_ids": response.meta["home_ids"],
+                                # "proxy": proxy_url,
                             },
                         )
 
@@ -623,6 +632,7 @@ class ZillowRentSpider(scrapy.Spider):
                         body=json.dumps(payload),
                         cookies=cookie_parser(),
                         headers=headers,
+                        # meta={"proxy": proxy_url,}
                     )
                     agent_info = json.loads(agent_resp.body)
                     agent = get_agent(agent_info)
@@ -709,6 +719,7 @@ class ZillowRentSpider(scrapy.Spider):
                         body=json.dumps(contact_payload),
                         cookies=cookie_parser(),
                         headers=headers,
+                        # meta={"proxy": proxy_url,}
                     )
                     
                     overview_data = json.loads(overview_resp.body)
@@ -765,6 +776,7 @@ class ZillowRentSpider(scrapy.Spider):
                         body=json.dumps(score_payload),
                         cookies=cookie_parser(),
                         headers=headers,
+                        # meta={"proxy": proxy_url,}
                     )
                     score_data = json.loads(score_resp.body)
                     getting_around = []
