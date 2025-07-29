@@ -11,8 +11,6 @@ BASE_URL = "https://www.zillow.com"
 URL = f"{BASE_URL}/async-create-search-page-state"
 payload = settings.PAYLOAD
 
-# proxy_url = "http://scrapyfarzana:m~3E2glX3WywCz4qqj@gate.decodo.com:7000"
-
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
 
@@ -74,7 +72,7 @@ class ZillowRentSpider(scrapy.Spider):
             )
 
         # Pagination: Proceed if within page limit
-        if current_page < 25:
+        if current_page < 15:
             current_page += 1
             request_id += 1
 
