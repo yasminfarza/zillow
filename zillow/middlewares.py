@@ -5,14 +5,34 @@
 
 from scrapy import signals
 
-# useful for handling different item types with a single interface
-from itemadapter import is_item, ItemAdapter
-import logging
-from scrapy.spidermiddlewares.httperror import HttpErrorMiddleware
-from scrapy.http import Response
-from scrapy.exceptions import NotConfigured
+import random
 from zillow import settings
 
+import socket
+from scrapy.mail import MailSender
+from scrapy.exceptions import CloseSpider
+
+class Forbidden403Middleware:
+    def __init__(self, mailer, to_email):
+        self.mailer = mailer
+        self.to_email = to_email
+        self.alert_sent = False  # avoid duplicate emails
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        mailer = MailSender.from_settings(crawler.settings)
+        to_email = crawler.settings.get("ALERT_EMAIL")
+        return cls(mailer, to_email)
+
+    def process_response(self, request, response, spider):
+        if response.status == 403 and not self.alert_sent:
+            device_name = socket.gethostname()
+            subject = f"[Scrapy Alert] 403 Forbidden on {device_name}"
+            body = (f"A 403 Forbidden error occurred.\n\n🕸️ Spider: {spider.name}\n🔗 URL: {request.url}\n💻 Device: {device_name}")
+            self.mailer.send(to=[self.to_email], subject=subject, body=body)
+            self.alert_sent = True
+            raise CloseSpider(reason="403 Forbidden detected")
+        return response
 
 class ZillowSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -117,36 +137,8 @@ class RandomHeaderMiddleware:
             'en-US,en;q=0.9', 'en-GB,en;q=0.8', 'en;q=0.7'
         ]
         self.user_agent_options = [
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-            
-            # Chrome on Windows
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-
-            # Firefox on Windows
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0',
-
-            # Chrome on macOS
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_0_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-
-            # Safari on macOS
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Safari/605.1.15',
-
-            # Chrome on Android
-            'Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.93 Mobile Safari/537.36',
-            'Mozilla/5.0 (Linux; Android 11; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.105 Mobile Safari/537.36',
-
-            # Safari on iOS
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 14_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
-            'Mozilla/5.0 (iPad; CPU OS 14_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
-
-            # Edge on Windows
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.818.66 Safari/537.36 Edg/90.0.818.66',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.57'
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36'
         ]
         self.referer_options = [
             settings.REFERER

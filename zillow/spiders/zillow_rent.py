@@ -5,16 +5,26 @@ from contextlib import suppress
 from zillow.utils import cookie_parser, get_home_id, binary_search, get_zillow_url
 from zillow.functions import get_agent
 import json
+import random
 from zillow import settings
 
 BASE_URL = "https://www.zillow.com"
 URL = f"{BASE_URL}/async-create-search-page-state"
 payload = settings.PAYLOAD
+PROXY_LIST = settings.PROXY_LIST
 
 class ZillowRentSpider(scrapy.Spider):
     name = "zillow_rent"
 
+    def _get_proxy(self):
+        """Get a random proxy from settings"""
+        proxy_list = None
+        if proxy_list:
+            return random.choice(proxy_list)
+        return None
+
     def start_requests(self):
+        print("proxy url", self._get_proxy())
         yield scrapy.Request(
             url=URL,
             callback=self.parse,
@@ -23,10 +33,10 @@ class ZillowRentSpider(scrapy.Spider):
             cookies=cookie_parser(),
             meta={
                 "currentPage": 1,
-                "request_id": 5,
+                "request_id": 3,
                 "home_ids": get_home_id(),
                 "zillow_urls": get_zillow_url(),
-                # "proxy": proxy_url,
+                "proxy": self._get_proxy(),
             },
         )
 
@@ -67,12 +77,12 @@ class ZillowRentSpider(scrapy.Spider):
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
                     "zillow_urls": response.meta["zillow_urls"],
-                    # "proxy": proxy_url,
+                    "proxy": self._get_proxy(),
                 },
             )
 
         # Pagination: Proceed if within page limit
-        if current_page < 15:
+        if current_page < 25:
             current_page += 1
             request_id += 1
 
@@ -93,7 +103,7 @@ class ZillowRentSpider(scrapy.Spider):
                     "request_id": request_id,
                     "home_ids": response.meta["home_ids"],
                     "zillow_urls": response.meta["zillow_urls"],
-                    # "proxy": proxy_url,
+                    "proxy": self._get_proxy(),
                 },
             )
 
@@ -559,7 +569,7 @@ class ZillowRentSpider(scrapy.Spider):
                 page_Value = json.loads(gdpClientCache).values()
                 properties = list(page_Value)[0]["property"]
                 zpid = properties["zpid"]
-                description = properties["description"]
+                description = properties.get("description")
                 prop_schools = properties.get("schools", [])
                 
                 schools = []
@@ -575,7 +585,7 @@ class ZillowRentSpider(scrapy.Spider):
                     schools.append(school_info)
                 
                 image_link, home_type = [], properties.get("homeType")
-                if photos := properties["responsivePhotos"]:
+                if photos := properties.get("responsivePhotos"):
                     for photo in photos:
                         if photo.get("mixedSources"):
                             if webp_photos := photo["mixedSources"]["webp"][-1]['url']:
@@ -599,14 +609,15 @@ class ZillowRentSpider(scrapy.Spider):
                         address = "".join([i.get() for i in addr.xpath(".//text()")])
 
                     # availablity
-                    facts = properties["resoFacts"]["atAGlanceFacts"]
                     available = ""
-                    for fact in facts:
-                        if (
-                            fact["factLabel"] == "Date available"
-                            and fact["factValue"] == "Available Now"
-                        ):
-                            available = "Available Now"
+                    if properties.get("resoFacts") and properties["resoFacts"].get("atAGlanceFacts"):   
+                        facts = properties["resoFacts"]["atAGlanceFacts"]
+                        for fact in facts:
+                            if (
+                                fact["factLabel"] == "Date available"
+                                and fact["factValue"] == "Available Now"
+                            ):
+                                available = "Available Now"
 
                     if not available:
                         if response.xpath("//div[contains(@class, 'styles__StyledDataModule')]//span[contains(text(), 'Available')]"):
@@ -728,10 +739,11 @@ class ZillowRentSpider(scrapy.Spider):
 
                     # UnitNumber
                     with suppress(KeyError):
-                        target_unitNumber = properties["adTargets"]["aamgnrc2"]
-                        if target_unitNumber in address:
-                            if not "Unit" in target_unitNumber:
-                                unitNumber = f"Unit {target_unitNumber}"
+                        if properties.get("adTargets") and properties["adTargets"].get("aamgnrc2"):
+                            target_unitNumber = properties["adTargets"]["aamgnrc2"]
+                            if target_unitNumber in address:
+                                if not "Unit" in target_unitNumber:
+                                    unitNumber = f"Unit {target_unitNumber}"
                                 
                     # Walk, Transit and Bike Score
                     score_q = """
@@ -802,7 +814,12 @@ class ZillowRentSpider(scrapy.Spider):
                                 "bikescore": bike_scores.get("bikescore", ""),
                             }
                             getting_around.append(f"Bike Score: {bike_score}")
-                        
+                    
+                    if properties.get("adTargets"):
+                        data.update({"Sqft": properties["adTargets"].get("sqft")})
+                    else:
+                        data.update({"Sqft": properties.get("livingArea")})
+                    
                     data.update({
                         "home_id": zpid,
                         "Title": title,
@@ -812,8 +829,6 @@ class ZillowRentSpider(scrapy.Spider):
                         "Baths": properties.get("bathrooms"),
                         "UnitNumber": unitNumber,
                         "Price": properties.get("price"),
-                        "Sqft": properties["adTargets"].get("sqft")
-                        or properties.get("livingArea"),
                         "Longitude": properties.get("longitude"),
                         "Latitude": properties.get("latitude"),
                         "Property Type": home_type,
