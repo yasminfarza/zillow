@@ -566,8 +566,22 @@ class ZillowRentSpider(scrapy.Spider):
                     gdpClientCache = page_response["props"]["pageProps"]["gdpClientCache"]
                 else:
                     gdpClientCache = page_response["props"]["pageProps"]["componentProps"]["gdpClientCache"]
-                page_Value = json.loads(gdpClientCache).values()
-                properties = list(page_Value)[0]["property"]
+                    
+                cache_data = json.loads(gdpClientCache)
+        
+                properties = None
+                for key, value in cache_data.items():
+                    if isinstance(value, dict) and "property" in value:
+                        # Check if this property entry has the required fields
+                        prop_data = value["property"]
+                        if "description" in prop_data:  # Basic validation
+                            properties = prop_data
+                            print(f"Found property data in key: {key[:50]}...")  # Debug info
+                            break
+                
+                if not properties:
+                    print("No property data found in any cache entry")
+                
                 zpid = properties["zpid"]
                 description = properties.get("description")
                 prop_schools = properties.get("schools", [])
